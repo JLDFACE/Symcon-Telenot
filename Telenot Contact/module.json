@@ -1,0 +1,11 @@
+{
+  "id": "{31DD9AF7-803E-4CF9-B4D2-605CC3EC42BB}",
+  "name": "Telenot Contact",
+  "aliases": ["Telenot Melder", "Telenot Ausgang", "Telenot Meldebereich"],
+  "type": 3,
+  "vendor": "FACE GmbH",
+  "parentRequirements": ["{99A612CC-0F87-4A39-9E2E-C6026E1053A8}"],
+  "childRequirements": [],
+  "implemented": ["{A05F3750-F1CA-49AE-A531-0E1D2A0A0CB4}"],
+  "prefix": "TLN"
+}

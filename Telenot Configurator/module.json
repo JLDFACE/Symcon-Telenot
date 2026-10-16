@@ -1,0 +1,11 @@
+{
+  "id": "{0BB39F1E-DA1E-420C-86EC-F605BE293D3C}",
+  "name": "Telenot Configurator",
+  "aliases": ["Telenot Konfigurator"],
+  "type": 4,
+  "vendor": "FACE GmbH",
+  "parentRequirements": ["{99A612CC-0F87-4A39-9E2E-C6026E1053A8}"],
+  "childRequirements": [],
+  "implemented": ["{A05F3750-F1CA-49AE-A531-0E1D2A0A0CB4}"],
+  "prefix": "TLN"
+}

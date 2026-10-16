@@ -1,0 +1,12 @@
+{
+  "id": "{DE2B4271-F8A4-44A5-ACEF-4231C9358FFB}",
+  "author": "FACE GmbH",
+  "name": "Telenot",
+  "url": "https://github.com/JLDFACE/Symcon-Telenot",
+  "compatibility": {
+    "version": "7.0"
+  },
+  "version": "0.1",
+  "build": 1,
+  "date": 1792108800
+}

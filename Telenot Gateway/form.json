@@ -1,0 +1,48 @@
+{
+    "elements": [
+        {
+            "type": "Label",
+            "caption": "Schnittstelle in compasX auf „GMS lite“ stellen (9600 Baud, 8N1). Unter GMS+ (115200 Baud) kommen nur Zustände an, Schaltbefehle lehnt die Zentrale ab."
+        },
+        {
+            "type": "Label",
+            "caption": "IP-RS232-Wandler (z. B. USR-TCP232-302): in dessen Weboberfläche TCP-Server und 9600 8N1 einstellen. Host und Port werden an den Client Socket übergeben."
+        },
+        {
+            "type": "RowLayout",
+            "items": [
+                { "type": "ValidationTextBox", "name": "Host", "caption": "IP des Wandlers" },
+                { "type": "NumberSpinner", "name": "Port", "caption": "Port", "minimum": 1, "maximum": 65535 }
+            ]
+        },
+        {
+            "type": "Select",
+            "name": "PanelType",
+            "caption": "Zentrale",
+            "options": [
+                { "caption": "hiplex 8400H (Bereiche ab 0x0500)", "value": "hiplex" },
+                { "caption": "complex 400H (Bereiche ab 0x0530)", "value": "complex" }
+            ]
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "OfflineAfter",
+            "caption": "Offline nach",
+            "suffix": " s",
+            "minimum": 5,
+            "maximum": 120
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Kontakte und Namen aus der Zentrale lesen",
+            "onClick": "TLN_StartDiscovery($id); echo 'Läuft im Hintergrund, ca. 1–3 s pro Kontakt. Ergebnis im Telenot Konfigurator.';"
+        }
+    ],
+    "status": [
+        { "code": 102, "icon": "active", "caption": "Zentrale verbunden" },
+        { "code": 104, "icon": "inactive", "caption": "Inaktiv" },
+        { "code": 200, "icon": "error", "caption": "Keine Daten von der Zentrale (Schnittstelle, Baudrate, GMS-Modus prüfen)" }
+    ]
+}

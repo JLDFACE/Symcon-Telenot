@@ -1,0 +1,11 @@
+{
+  "id": "{F3393CE7-1768-4FBA-93FD-BB5348FC2CEC}",
+  "name": "Telenot Gateway",
+  "aliases": ["Telenot hiplex", "Telenot complex", "Telenot GMS"],
+  "type": 2,
+  "vendor": "FACE GmbH",
+  "parentRequirements": ["{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}"],
+  "childRequirements": ["{A05F3750-F1CA-49AE-A531-0E1D2A0A0CB4}"],
+  "implemented": ["{018EF6B5-AB94-40C6-AA53-46943E824ACF}", "{99A612CC-0F87-4A39-9E2E-C6026E1053A8}"],
+  "prefix": "TLN"
+}

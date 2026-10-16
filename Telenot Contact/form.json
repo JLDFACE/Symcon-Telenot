@@ -1,0 +1,28 @@
+{
+    "elements": [
+        {
+            "type": "NumberSpinner",
+            "name": "Address",
+            "caption": "Adresse (dezimal)",
+            "minimum": 0,
+            "maximum": 2047
+        },
+        {
+            "type": "Select",
+            "name": "Kind",
+            "caption": "Art",
+            "options": [
+                { "caption": "Melder", "value": "Melder" },
+                { "caption": "Ausgang", "value": "Ausgang" },
+                { "caption": "Meldebereich", "value": "Meldebereich" }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Label",
+            "caption": "Am einfachsten über den Telenot Konfigurator anlegen – der kennt Adressen und Namen aus der Zentrale."
+        }
+    ],
+    "status": []
+}
