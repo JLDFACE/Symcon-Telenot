@@ -206,15 +206,17 @@ class IPSModule
         //How and why do we want to test this?
     }
 
+    // Intervalle merken, damit Tests einen gestellten Timer auslösen können
+    public $TimerIntervals = array();
+
     protected function SetTimerInterval($Ident, $Milliseconds)
     {
-        //How and why do we want to test this?
+        $this->TimerIntervals[$Ident] = $Milliseconds;
     }
 
     protected function GetTimerInterval($Ident)
     {
-        //How and why do we want to test this?
-        return 0;
+        return isset($this->TimerIntervals[$Ident]) ? $this->TimerIntervals[$Ident] : 0;
     }
 
     protected function RegisterScript($Ident, $Name, $Content = '', $Position = 0)

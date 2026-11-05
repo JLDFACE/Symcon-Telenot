@@ -77,6 +77,16 @@ while (($line = fgets(STDIN)) !== false) {
     while (io($sock)->HasText()) {
         echo 'TX ' . bin2hex(io($sock)->PopText()) . "\n";
     }
+    // Sende-Timer wie in Symcon: erst die Quittung raus, Befehl mit Abstand hinterher
+    $send = io($gw)->TimerIntervals['Send'] ?? 0;
+    if ($send > 0) {
+        fflush(STDOUT);
+        usleep($send * 1000);
+        TLN_SendPending($gw);
+        while (io($sock)->HasText()) {
+            echo 'TX ' . bin2hex(io($sock)->PopText()) . "\n";
+        }
+    }
     foreach ($watch as $label => $w) {
         $v = GetValue(IPS_GetObjectIDByIdent($w[1], $w[0]));
         if (!array_key_exists($label, $last) || $last[$label] !== $v) {

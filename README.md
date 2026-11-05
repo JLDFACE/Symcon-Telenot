@@ -30,6 +30,7 @@ serielle GMS-Schnittstelle. Im Normalfall hängt die Zentrale an einem IP-RS232-
    Schaltbefehl ab, und ein abgelehnter Befehl kann die Schnittstelle bis zum Neustart der
    Zentrale stumm schalten.
 2. **IP-RS232-Wandler:** in seiner Weboberfläche als **TCP-Server**, **9600 8N1** einstellen.
+   Live in Symcon im Einsatz: Waveshare RS232/485/422 TO POE ETH (B), Port 4196.
 3. **Symcon:** Instanz „Telenot Gateway“ anlegen, IP und Port des Wandlers eintragen. Der Client
    Socket wird automatisch angelegt und bekommt Host/Port vom Gateway. Zentralentyp wählen.
 4. Instanz „Telenot Configurator“ anlegen (hängt sich an das Gateway), **„Aus der Zentrale
@@ -53,6 +54,10 @@ An einer hiplex 8400H mitgeschnitten und verifiziert; Befehlsaufbau nach dem
 - Bereichsbyte: Bit 0 unscharf, 1 intern scharf, 2 extern scharf, 3 Alarm, 4 Störung,
   5 bereit intern, 6 bereit extern, 7 interner Signalgeber
   (`0x9E` unscharf, `0x9B` extern scharf, `0x76` Sabotage).
+- Zwischen der Quittung des Bereichsblocks und dem Befehl muss eine kurze Pause liegen. Kommen
+  beide im selben Paket an, verwirft die Zentrale den Befehl (50 ms bis 2 s funktionieren). Weil
+  der Client Socket erst sendet, wenn `ReceiveData` zurückkehrt, schickt das Gateway Befehle über
+  einen eigenen Timer (200 ms) statt mit `IPS_Sleep` in `ReceiveData`.
 - Befehle werden nach der Quittung des Bereichsblocks gesendet:
   `68 09 09 68 73 01 05 02 00 <Adresse> 02 <Code> CS 16`
   mit Adresse = Bereichsbasis + 8·(Bereich−1) + Offset:

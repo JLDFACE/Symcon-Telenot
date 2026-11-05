@@ -46,7 +46,10 @@ class TelenotGateway extends IPSModule
     const DISCOVERY_TRIES = 3;
     const LOG_LINES = 50;
     const REFRESH_SECONDS = 60;
-    const SEND_DELAY_MS = 250;
+    // Abstand zwischen Quittung des Bereichsblocks und Befehl. Kommen beide ohne
+    // Pause an, verwirft die Zentrale den Befehl (live über den Waveshare-Wandler
+    // geprüft: gleichzeitig nein, 50 ms bis 2 s ja).
+    const SEND_DELAY_MS = 200;
 
     public function Create()
     {
@@ -62,6 +65,7 @@ class TelenotGateway extends IPSModule
         $this->RegisterAttributeString('UsedOutputs', '[]');
 
         $this->RegisterTimer('Watchdog', 0, 'TLN_Watchdog($_IPS["TARGET"]);');
+        $this->RegisterTimer('Send', 0, 'TLN_SendPending($_IPS["TARGET"]);');
 
         // Normalfall: IP-RS232-Wandler (z. B. USR-TCP232-302) im TCP-Server-Modus.
         // Ein Serial Port als Parent funktioniert genauso (gleicher Datenfluss).
@@ -339,8 +343,13 @@ class TelenotGateway extends IPSModule
                 $this->HandleBlock('MP', $data);
             } elseif ($kind === 0x02 && $addr === 0x0500) {
                 $this->HandleBlock('SB', $data);
-                // Zeitfenster für Befehle: nach dem Bereichsblock wartet die Zentrale
-                $this->SendNextCommand();
+                // Zeitfenster für Befehle: nach dem Bereichsblock wartet die Zentrale.
+                // Nicht hier senden: der Client Socket schickt erst ab, wenn
+                // ReceiveData zurückkehrt – Quittung und Befehl kämen dann zusammen
+                // und zu spät an. Der Timer sendet in einem eigenen Durchlauf.
+                if ($this->HasPendingSend()) {
+                    $this->SetTimerInterval('Send', self::SEND_DELAY_MS);
+                }
             } elseif ($kind === 0x71) {
                 $this->HandleUsed('In', 0x0000, $data);
             } elseif ($kind === 0x72) {
@@ -522,6 +531,23 @@ class TelenotGateway extends IPSModule
         return $ok;
     }
 
+    /** Timer: einen Befehl oder eine Discovery-Abfrage nach dem Bereichsblock senden. */
+    public function SendPending()
+    {
+        $this->SetTimerInterval('Send', 0);
+        $this->SendNextCommand();
+    }
+
+    private function HasPendingSend()
+    {
+        $queue = json_decode($this->GetBuffer('Queue'), true);
+        if (is_array($queue) && count($queue) > 0) {
+            return true;
+        }
+        $disc = $this->GetDisc();
+        return isset($disc['Phase']) && $disc['Phase'] !== 'idle';
+    }
+
     private function SendNextCommand()
     {
         $frame = '';
@@ -538,7 +564,6 @@ class TelenotGateway extends IPSModule
         if ($frame === '') {
             return;
         }
-        IPS_Sleep(self::SEND_DELAY_MS);
         $this->SendDebug('Tx', bin2hex($frame), 0);
         $this->SendToPanel($frame);
     }

@@ -66,11 +66,24 @@ function io($id)
 function push($sock, $bin)
 {
     io($sock)->PushText($bin);
+    return popAll($sock);
+}
+
+function popAll($sock)
+{
     $out = array();
     while (io($sock)->HasText()) {
         $out[] = bin2hex(io($sock)->PopText());
     }
     return $out;
+}
+
+/** Bereichsblock schicken und danach den Sende-Timer auslösen (in Symcon nach 200 ms). */
+function pushSb($sock, $gw, $bin)
+{
+    $tx = push($sock, $bin);
+    TLN_SendPending($gw);
+    return array_merge($tx, popAll($sock));
 }
 
 function val($inst, $ident)
@@ -147,15 +160,18 @@ io($a1)->RequestAction('State', 2);
 $tx = push($sock, POLL);
 check($tx === array(ACK), 'Befehl geht nicht als Antwort auf die Abfrage raus');
 $tx = push($sock, sbFrame('9e', '9e'));
+check($tx === array(ACK), 'innerhalb von ReceiveData nur die Quittung, der Befehl wartet auf den Timer');
+TLN_SendPending($gw);
+$tx = array_merge($tx, popAll($sock));
 check($tx === array(ACK, '68090968730105020005020261e516'), 'nach Bereichsblock: ACK + Extern scharf Bereich 1');
 io($a2)->RequestAction('State', 0);
-$tx = push($sock, sbFrame('9b', '9b'));
+$tx = pushSb($sock, $gw, sbFrame('9b', '9b'));
 check(isset($tx[1]) && $tx[1] === '680909687301050200050802e16b16', 'Unscharf Bereich 2: ' . (isset($tx[1]) ? $tx[1] : '-'));
 TLN_ArmInternal($gw, 1);
 TLN_ArmInternal($gw, 1);
-$tx = push($sock, sbFrame('9e', '9e'));
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 check(isset($tx[1]) && $tx[1] === '68090968730105020005010262e516', 'Intern scharf Bereich 1: ' . (isset($tx[1]) ? $tx[1] : '-'));
-$tx = push($sock, sbFrame('9e', '9e'));
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 check($tx === array(ACK), 'doppelter Befehl nur einmal gesendet');
 $tx = push($sock, hexbin($fx['cmd_confirm']));
 check($tx === array(ACK), 'Befehlsbestätigung (C=0x00) wird quittiert wie im Live-Test');
@@ -172,13 +188,13 @@ check($tx === array(ACK), 'falsche Prüfsumme verworfen, folgende Abfrage erkann
 
 echo "Discovery\n";
 TLN_StartDiscovery($gw);
-$tx = push($sock, sbFrame('9e', '9e'));
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 check(isset($tx[1]) && $tx[1] === '68090968730205100000007124' . '1f16', 'Abfrage benutzter Kontakte: ' . (isset($tx[1]) ? $tx[1] : '-'));
 push($sock, hexbin($fx['used_inputs']));
 push($sock, hexbin($fx['used_outputs']));
 $info = json_decode(TLN_GetContacts($gw), true);
 check($info['Discovery']['Phase'] === 'names' && $info['Discovery']['Total'] === 32 + 2 + 15 + 32, 'Namensliste: ' . $info['Discovery']['Total'] . ' Einträge');
-$tx = push($sock, sbFrame('9e', '9e'));
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 check(isset($tx[1]) && $tx[1] === '6809096873020510000010730c1916', 'Namensabfrage 0x0010: ' . (isset($tx[1]) ? $tx[1] : '-'));
 push($sock, hexbin($fx['info_0010']));
 push($sock, hexbin($fx['info_0500']));
@@ -188,11 +204,11 @@ check($info['Contacts']['1280']['Name'] === 'Bestattungshaus' && $info['Contacts
 check($info['Discovery']['Open'] === 79, 'noch 79 offen');
 
 // Unbeantwortete Abfragen: nach 3 Versuchen ohne Namen übernehmen und weiter
-$tx = push($sock, sbFrame('9e', '9e'));
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 $first = isset($tx[1]) ? $tx[1] : '';
-push($sock, sbFrame('9e', '9e'));
-push($sock, sbFrame('9e', '9e'));
-$tx = push($sock, sbFrame('9e', '9e'));
+pushSb($sock, $gw, sbFrame('9e', '9e'));
+pushSb($sock, $gw, sbFrame('9e', '9e'));
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 check($first === '6809096873020510000011730c1a16' && isset($tx[1]) && $tx[1] !== $first, 'nach 3 Versuchen nächste Adresse: ' . (isset($tx[1]) ? $tx[1] : '-'));
 
 echo "Konfigurator\n";
