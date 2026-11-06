@@ -50,6 +50,7 @@ class TelenotGateway extends IPSModule
     // Pause an, verwirft die Zentrale den Befehl (live über den Waveshare-Wandler
     // geprüft: gleichzeitig nein, 50 ms bis 2 s ja).
     const SEND_DELAY_MS = 200;
+    const RECONNECT_AFTER = 60;     // s ohne Daten bei offenem Socket → neu verbinden
 
     public function Create()
     {
@@ -96,6 +97,8 @@ class TelenotGateway extends IPSModule
 
         $this->SyncSocket();
 
+        // Frisch (neu) gestartet: erst nach RECONNECT_AFTER ohne Daten neu verbinden
+        $this->SetBuffer('LastReconnect', (string) microtime(true));
         $this->SetTimerInterval('Watchdog', 5000);
         $this->Watchdog();
     }
@@ -219,6 +222,35 @@ class TelenotGateway extends IPSModule
         $limit = max(5, $this->ReadPropertyInteger('OfflineAfter'));
         $online = $this->ParentActive() && $last > 0 && (microtime(true) - $last) <= $limit;
         $this->SetDeviceOnline($online);
+        if (!$online) {
+            $this->ReconnectIfSilent();
+        }
+    }
+
+    /**
+     * Der Socket meldet „verbunden“, aber die Zentrale schweigt: so sieht eine halb offene
+     * TCP-Verbindung aus, etwa nach einem Neustart des Wandlers (live am 06.11.2026 erlebt,
+     * 25 min ohne Daten). Dann den Client Socket neu verbinden, höchstens einmal pro Minute.
+     */
+    private function ReconnectIfSilent()
+    {
+        $parent = $this->ParentID();
+        if ($parent <= 0 || !$this->ParentActive()) {
+            return;
+        }
+        if (IPS_GetInstance($parent)['ModuleInfo']['ModuleID'] !== self::SOCKET_GUID) {
+            return;
+        }
+        $since = max((float) $this->GetBuffer('LastRx'), (float) $this->GetBuffer('LastReconnect'));
+        if (microtime(true) - $since < self::RECONNECT_AFTER) {
+            return;
+        }
+        $this->SetBuffer('LastReconnect', (string) microtime(true));
+        $this->LogMessage('Telenot: keine Daten von der Zentrale, Verbindung zum Wandler wird neu aufgebaut', KL_WARNING);
+        @IPS_SetProperty($parent, 'Open', false);
+        @IPS_ApplyChanges($parent);
+        @IPS_SetProperty($parent, 'Open', true);
+        @IPS_ApplyChanges($parent);
     }
 
     // -----------------------------------------------------------------
