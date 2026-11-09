@@ -42,6 +42,12 @@ class TelenotContact extends IPSModule
 
         $this->RegisterVariableBoolean('Online', 'Online', $this->ProfileName('Online'), 0);
         $this->RegisterVariableBoolean('Active', $this->CaptionForKind(), $this->ProfileName('Active'), 1);
+        // Ausgänge (Schaltaktionen der hiplex) lassen sich schalten, Melder und Meldebereiche nicht
+        if ($this->ReadPropertyString('Kind') === 'Ausgang') {
+            $this->EnableAction('Active');
+        } else {
+            $this->DisableAction('Active');
+        }
 
         $this->SetStatus(102);
         if ($this->HasActiveParent()) {
@@ -77,6 +83,18 @@ class TelenotContact extends IPSModule
         $byte = ord($bytes[intdiv($offset, 8)]);
         $this->SetValueIfChanged('Online', true);
         $this->SetValueIfChanged('Active', (($byte >> ($offset % 8)) & 1) === 0);
+    }
+
+    public function RequestAction($Ident, $Value)
+    {
+        if ($Ident !== 'Active' || $this->ReadPropertyString('Kind') !== 'Ausgang') {
+            throw new Exception('Invalid Ident');
+        }
+        // Zustand kommt mit dem nächsten Block der Zentrale zurück, hier nichts vorwegnehmen
+        $this->SendDataToParent(json_encode(array(
+            'DataID' => self::IF_FROM_CHILD,
+            'Buffer' => array('Type' => 'Output', 'Address' => $this->ReadPropertyInteger('Address'), 'Value' => (bool) $Value)
+        )));
     }
 
     private function CaptionForKind()

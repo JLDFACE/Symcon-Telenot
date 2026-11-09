@@ -180,6 +180,12 @@ class TelenotGateway extends IPSModule
         return $this->QueueAreaCommand('ResetAlarm', $Area);
     }
 
+    /** Ausgang / Schaltaktion schalten (Adresse wie im Konfigurator, z. B. 0x057B). */
+    public function SwitchOutput(int $Address, bool $On)
+    {
+        return $this->QueueOutputCommand($Address, $On);
+    }
+
     /** Liest benutzte Melder, Bereiche und Ausgänge samt Namen aus der Zentrale. */
     public function StartDiscovery()
     {
@@ -330,6 +336,9 @@ class TelenotGateway extends IPSModule
                 $action = isset($req['Action']) ? (string) $req['Action'] : '';
                 $area = isset($req['Area']) ? (int) $req['Area'] : 0;
                 return json_encode($this->QueueAreaCommand($action, $area));
+
+            case 'Output':
+                return json_encode($this->QueueOutputCommand((int) ($req['Address'] ?? 0), (bool) ($req['Value'] ?? false)));
         }
         return '';
     }
@@ -542,6 +551,22 @@ class TelenotGateway extends IPSModule
         $addr = $this->AreaBase() + 8 * ($area - 1) + $offset;
         $frame = $this->BuildFrame("\x73\x01\x05\x02\x00" . chr($addr >> 8) . chr($addr & 0xFF) . "\x02" . chr($code));
         $this->SendDebug('Befehl', sprintf('%s Bereich %d eingereiht: %s', $action, $area, bin2hex($frame)), 0);
+        return $this->Enqueue($frame);
+    }
+
+    /**
+     * Ausgang / Schaltaktion ein- oder ausschalten: Meldungsart 0x00 = ein, 0x80 = aus.
+     * An der hiplex 8400H (GMS lite) am 09.11.2026 live verifiziert mit 0x057B „Motorschloss“;
+     * die Schaltaktion muss in hipas als Ein/Aus angelegt sein.
+     */
+    private function QueueOutputCommand($address, $on)
+    {
+        if ($address < 0x0500 || $address > 0x06FF) {
+            $this->SendDebug('Befehl', sprintf('Ausgang 0x%04X ungültig', $address), 0);
+            return false;
+        }
+        $frame = $this->BuildFrame("\x73\x01\x05\x02\x00" . chr($address >> 8) . chr($address & 0xFF) . "\x02" . ($on ? "\x00" : "\x80"));
+        $this->SendDebug('Befehl', sprintf('Ausgang 0x%04X %s eingereiht: %s', $address, $on ? 'ein' : 'aus', bin2hex($frame)), 0);
         return $this->Enqueue($frame);
     }
 

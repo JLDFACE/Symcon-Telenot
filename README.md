@@ -8,7 +8,8 @@ serielle GMS-Schnittstelle. Im Normalfall hängt die Zentrale an einem IP-RS232-
 
 - **Sicherungsbereiche:** Zustand unscharf / intern scharf / extern scharf (schaltbar), Alarm
   (zurücksetzbar), Störung, bereit intern / extern, interner Signalgeber
-- **Melder, Ausgänge, Meldebereiche:** je eine Boolean-Variable
+- **Melder, Ausgänge, Meldebereiche:** je eine Boolean-Variable; Ausgänge (Schaltaktionen) sind schaltbar
+  (`TLN_SwitchOutput($id, $Adresse, $Ein)` oder über die Variable der Instanz)
 - **Ereignisprotokoll** mit Klartext aus der Zentrale („Extern scharf – GMS-Schnittst. (RS232) / Bestattungshaus“)
 - **Automatische Anlage:** Der Konfigurator liest die belegten Adressen und deren Namen aus
   der Zentrale und legt die Instanzen per Klick an
@@ -63,6 +64,10 @@ An einer hiplex 8400H mitgeschnitten und verifiziert; Befehlsaufbau nach dem
   mit Adresse = Bereichsbasis + 8·(Bereich−1) + Offset:
   unscharf +0/`E1`, intern +1/`62`, extern +2/`61`, Rückstellung +3/`52`.
   Bereichsbasis: hiplex `0x0500`, complex 400 `0x0530`.
+- Ausgang / Schaltaktion: `68 09 09 68 73 01 05 02 00 <Adresse> 02 <00 = ein | 80 = aus> CS 16`.
+  An der hiplex 8400H unter GMS lite live verifiziert (0x057B „Motorschloss“ ein → Tür entriegelt,
+  aus → wieder zu). Bei der hiplex sind das die Schaltaktionen aus hipas (Typ Ein/Aus); die Adresse steht
+  im Konfigurator unter „Ausgänge“.
 - Auslesen: `73 02 05 10 00 00 00 71 24` liefert die belegten Adressen,
   `73 02 05 10 00 <Adresse> 73 0C` den Namen einer Adresse.
 

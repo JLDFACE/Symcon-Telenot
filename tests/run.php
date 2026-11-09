@@ -173,6 +173,17 @@ $tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 check(isset($tx[1]) && $tx[1] === '68090968730105020005010262e516', 'Intern scharf Bereich 1: ' . (isset($tx[1]) ? $tx[1] : '-'));
 $tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 check($tx === array(ACK), 'doppelter Befehl nur einmal gesendet');
+// Ausgang / Schaltaktion: Bytes wie live am 09.11.2026 an der hiplex (Motorschloss 0x057B)
+TLN_SwitchOutput($gw, 0x057B, true);
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
+check(isset($tx[1]) && $tx[1] === '680909687301050200057b0200fd16', 'Ausgang 0x057B ein: ' . (isset($tx[1]) ? $tx[1] : '-'));
+$out = IPS_CreateInstance(CONTACT);
+IPS_SetProperty($out, 'Address', 0x057B);
+IPS_SetProperty($out, 'Kind', 'Ausgang');
+IPS_ApplyChanges($out);
+io($out)->RequestAction('Active', false);
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
+check(isset($tx[1]) && $tx[1] === '680909687301050200057b02807d16', 'Ausgang aus über die Kontakt-Instanz: ' . (isset($tx[1]) ? $tx[1] : '-'));
 $tx = push($sock, hexbin($fx['cmd_confirm']));
 check($tx === array(ACK), 'Befehlsbestätigung (C=0x00) wird quittiert wie im Live-Test');
 
