@@ -836,6 +836,9 @@ class TelenotGateway extends IPSModule
             0x52 => 'Rückstellung',
             0x51 => 'Gesperrt',
             0xD1 => 'Freigegeben',
+            // Antwort auf einen Scharfschaltbefehl, der Text nennt den verhindernden Melder
+            // (live 09.11.2026: Intern scharf bei Bewegung → „Bewegungsmelder Esszimmer / Wohnhaus“)
+            0x67 => 'Scharfschalten verhindert',
             0x53 => 'Neustart',
             0x22 => 'Alarm',
             0x23 => 'Sabotage',

@@ -154,6 +154,10 @@ check(strpos($ev, 'Sabotage – Gehaeuseueberwach. (hiplex) / Bestattungshaus') 
 push($sock, hexbin($fx['event_restart_gmslite']));
 check(strpos(val($gw, 'LastEvent'), 'Neustart') !== false, 'Neustart-Ereignis ohne Text: ' . val($gw, 'LastEvent'));
 check(count(explode("\n", val($gw, 'EventLog'))) === 3, 'Protokoll hat 3 Zeilen');
+// Live 09.11.2026 (Bentheim): Intern scharf bei Bewegung → Zentrale antwortet mit 0x67 und dem Melder
+push($sock, hexbin($fx['event_verhindert_gmslite']));
+$ev = val($gw, 'LastEvent');
+check(strpos($ev, 'Scharfschalten verhindert – Bewegungsmelder Esszimmer') !== false, 'Scharfschalten verhindert: ' . $ev);
 
 echo "Befehle\n";
 io($a1)->RequestAction('State', 2);
