@@ -184,6 +184,17 @@ IPS_ApplyChanges($out);
 io($out)->RequestAction('Active', false);
 $tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
 check(isset($tx[1]) && $tx[1] === '680909687301050200057b02807d16', 'Ausgang aus über die Kontakt-Instanz: ' . (isset($tx[1]) ? $tx[1] : '-'));
+// Meldebereich sperren/freigeben: Bytes wie live am 09.11.2026 (Bentheim, 0x05BF Fenster Gäste WC)
+TLN_SetBlocked($gw, 0x05BF, true);
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
+check(isset($tx[1]) && $tx[1] === '68090968730105020005bf02519216', 'Meldebereich 0x05BF sperren: ' . (isset($tx[1]) ? $tx[1] : '-'));
+$mb = IPS_CreateInstance(CONTACT);
+IPS_SetProperty($mb, 'Address', 0x05BF);
+IPS_SetProperty($mb, 'Kind', 'Meldebereich');
+IPS_ApplyChanges($mb);
+io($mb)->RequestAction('Active', false);
+$tx = pushSb($sock, $gw, sbFrame('9e', '9e'));
+check(isset($tx[1]) && $tx[1] === '68090968730105020005bf02d11216', 'Meldebereich freigeben über die Kontakt-Instanz: ' . (isset($tx[1]) ? $tx[1] : '-'));
 $tx = push($sock, hexbin($fx['cmd_confirm']));
 check($tx === array(ACK), 'Befehlsbestätigung (C=0x00) wird quittiert wie im Live-Test');
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Telenot Kontakt: ein einzelnes Zustandsbit der Zentrale – Melder (ab 0x0000),
  * Ausgang oder Meldebereich (ab 0x0500). Bit = 0 heißt aktiv (active-low).
+ * Ausgänge sind schaltbar (ein/aus), Meldebereiche sperrbar (aktiv = gesperrt).
  */
 class TelenotContact extends IPSModule
 {
@@ -42,8 +43,8 @@ class TelenotContact extends IPSModule
 
         $this->RegisterVariableBoolean('Online', 'Online', $this->ProfileName('Online'), 0);
         $this->RegisterVariableBoolean('Active', $this->CaptionForKind(), $this->ProfileName('Active'), 1);
-        // Ausgänge (Schaltaktionen der hiplex) lassen sich schalten, Melder und Meldebereiche nicht
-        if ($this->ReadPropertyString('Kind') === 'Ausgang') {
+        // Ausgänge (Schaltaktionen) lassen sich schalten, Meldebereiche sperren/freigeben, Melder nicht
+        if (in_array($this->ReadPropertyString('Kind'), array('Ausgang', 'Meldebereich'), true)) {
             $this->EnableAction('Active');
         } else {
             $this->DisableAction('Active');
@@ -87,13 +88,14 @@ class TelenotContact extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
-        if ($Ident !== 'Active' || $this->ReadPropertyString('Kind') !== 'Ausgang') {
+        $kind = $this->ReadPropertyString('Kind');
+        if ($Ident !== 'Active' || !in_array($kind, array('Ausgang', 'Meldebereich'), true)) {
             throw new Exception('Invalid Ident');
         }
         // Zustand kommt mit dem nächsten Block der Zentrale zurück, hier nichts vorwegnehmen
         $this->SendDataToParent(json_encode(array(
             'DataID' => self::IF_FROM_CHILD,
-            'Buffer' => array('Type' => 'Output', 'Address' => $this->ReadPropertyInteger('Address'), 'Value' => (bool) $Value)
+            'Buffer' => array('Type' => $kind === 'Ausgang' ? 'Output' : 'Block', 'Address' => $this->ReadPropertyInteger('Address'), 'Value' => (bool) $Value)
         )));
     }
 
@@ -159,6 +161,11 @@ class TelenotContact extends IPSModule
             IPS_SetVariableProfileAssociation($p, false, 'Aus', '', -1);
             IPS_SetVariableProfileAssociation($p, true, 'Ein', '', 0x3A7BD5);
             IPS_SetVariableProfileIcon($p, 'Power');
+        } elseif ($this->ReadPropertyString('Kind') === 'Meldebereich') {
+            // Bit aktiv = gesperrt (live 09.11.2026: Sperren setzt das Bit, Freigeben löscht es)
+            IPS_SetVariableProfileAssociation($p, false, 'Frei', '', -1);
+            IPS_SetVariableProfileAssociation($p, true, 'Gesperrt', '', 0xF5A623);
+            IPS_SetVariableProfileIcon($p, 'Lock');
         } else {
             IPS_SetVariableProfileAssociation($p, false, 'Ruhe', '', -1);
             IPS_SetVariableProfileAssociation($p, true, 'Ausgelöst', '', 0xF5A623);

@@ -9,7 +9,8 @@ serielle GMS-Schnittstelle. Im Normalfall hängt die Zentrale an einem IP-RS232-
 - **Sicherungsbereiche:** Zustand unscharf / intern scharf / extern scharf (schaltbar), Alarm
   (zurücksetzbar), Störung, bereit intern / extern, interner Signalgeber
 - **Melder, Ausgänge, Meldebereiche:** je eine Boolean-Variable; Ausgänge (Schaltaktionen) sind schaltbar
-  (`TLN_SwitchOutput($id, $Adresse, $Ein)` oder über die Variable der Instanz)
+  (`TLN_SwitchOutput($id, $Adresse, $Ein)` oder über die Variable der Instanz), Meldebereiche sperrbar
+  (`TLN_SetBlocked($id, $Adresse, $Gesperrt)` oder über die Variable der Instanz)
 - **Ereignisprotokoll** mit Klartext aus der Zentrale („Extern scharf – GMS-Schnittst. (RS232) / Bestattungshaus“)
 - **Automatische Anlage:** Der Konfigurator liest die belegten Adressen und deren Namen aus
   der Zentrale und legt die Instanzen per Klick an
@@ -68,6 +69,13 @@ An einer hiplex 8400H mitgeschnitten und verifiziert; Befehlsaufbau nach dem
   An der hiplex 8400H unter GMS lite live verifiziert (0x057B „Motorschloss“ ein → Tür entriegelt,
   aus → wieder zu). Bei der hiplex sind das die Schaltaktionen aus hipas (Typ Ein/Aus); die Adresse steht
   im Konfigurator unter „Ausgänge“.
+- Meldebereich sperren / freigeben: `68 09 09 68 73 01 05 02 00 <Adresse> 02 <51 = sperren | D1 = freigeben> CS 16`.
+  An der hiplex 8400H unter GMS lite live verifiziert (Bentheim, 09.11.2026, 0x05BF „Fenster Gäste WC“):
+  die Zentrale quittiert, meldet das Ereignis 0x51/0xD1 mit „IP-Symcon Haussteuerung“ und setzt bzw.
+  löscht das Bit im Bereichsblock (Bit aktiv = gesperrt). Sperrt man am Bedienteil oder in BuildSec
+  („AT-Taste n“), kommen dieselben Ereignisse und Bits. Die Meldebereiche meldet die Zentrale nicht als
+  belegt; ihre Namen liest `TLN_ReadNames($gw, 0x05B0, 0x05D7)`.
+  `TLN_SetBlocked($gw, $Adresse, $Gesperrt)` oder die Variable einer Kontakt-Instanz vom Typ Meldebereich.
 - Auslesen: `73 02 05 10 00 00 00 71 24` liefert die belegten Adressen,
   `73 02 05 10 00 <Adresse> 73 0C` den Namen einer Adresse.
 

@@ -186,6 +186,44 @@ class TelenotGateway extends IPSModule
         return $this->QueueOutputCommand($Address, $On);
     }
 
+    /**
+     * Meldebereich sperren / freigeben (Meldungsart 0x51 / 0xD1), z. B. 0x05BF.
+     * An der hiplex 8400H (GMS lite) am 09.11.2026 live verifiziert: die Zentrale quittiert,
+     * meldet „Fenster Gaeste WC / IP-Symcon Haussteuerung“ und setzt das Bit im Bereichsblock.
+     */
+    public function SetBlocked(int $Address, bool $Blocked)
+    {
+        return $this->QueueBlockCommand($Address, $Blocked);
+    }
+
+    /** Liest nur die Namen eines Adressbereichs (z. B. Meldebereiche, die die Zentrale nicht als belegt meldet). */
+    public function ReadNames(int $From, int $To)
+    {
+        if ($From < 0 || $To < $From || $To - $From > 255) {
+            return false;
+        }
+        $disc = $this->GetDisc();
+        $pending = isset($disc['Pending']) ? $disc['Pending'] : array();
+        for ($a = $From; $a <= $To; $a++) {
+            if (!in_array($a, $pending, true)) {
+                $pending[] = $a;
+            }
+        }
+        $this->SetDisc(array(
+            'Phase' => 'names',
+            'GotIn' => true,
+            'GotOut' => true,
+            'Tries' => 0,
+            'Pending' => $pending,
+            'PendingTries' => array(),
+            'Total' => count($pending),
+            'Started' => time(),
+            'SkipNameless' => true
+        ));
+        $this->SendDebug('Discovery', sprintf('Namen 0x%04X–0x%04X angefragt', $From, $To), 0);
+        return true;
+    }
+
     /** Liest benutzte Melder, Bereiche und Ausgänge samt Namen aus der Zentrale. */
     public function StartDiscovery()
     {
@@ -339,6 +377,9 @@ class TelenotGateway extends IPSModule
 
             case 'Output':
                 return json_encode($this->QueueOutputCommand((int) ($req['Address'] ?? 0), (bool) ($req['Value'] ?? false)));
+
+            case 'Block':
+                return json_encode($this->QueueBlockCommand((int) ($req['Address'] ?? 0), (bool) ($req['Value'] ?? false)));
         }
         return '';
     }
@@ -570,6 +611,18 @@ class TelenotGateway extends IPSModule
         return $this->Enqueue($frame);
     }
 
+    /** Meldebereich sperren (0x51) / freigeben (0xD1). */
+    private function QueueBlockCommand($address, $blocked)
+    {
+        if ($address < 0x0500 || $address > 0x06FF) {
+            $this->SendDebug('Befehl', sprintf('Meldebereich 0x%04X ungültig', $address), 0);
+            return false;
+        }
+        $frame = $this->BuildFrame("\x73\x01\x05\x02\x00" . chr($address >> 8) . chr($address & 0xFF) . "\x02" . ($blocked ? "\x51" : "\xD1"));
+        $this->SendDebug('Befehl', sprintf('Meldebereich 0x%04X %s eingereiht: %s', $address, $blocked ? 'sperren' : 'freigeben', bin2hex($frame)), 0);
+        return $this->Enqueue($frame);
+    }
+
     private function Enqueue($frame)
     {
         $ok = false;
@@ -651,7 +704,7 @@ class TelenotGateway extends IPSModule
                     // Keine Antwort – ohne Namen übernehmen und weiter
                     array_shift($disc['Pending']);
                     $map = $this->GetContactMap();
-                    if (!isset($map[$key])) {
+                    if (!isset($map[$key]) && empty($disc['SkipNameless'])) {
                         $map[$key] = array('Name' => '', 'Kind' => $this->Classify($addr));
                         $this->WriteAttributeString('Contacts', json_encode($map));
                     }
@@ -778,6 +831,8 @@ class TelenotGateway extends IPSModule
             0x62 => 'Intern scharf',
             0xE1 => 'Unscharf',
             0x52 => 'Rückstellung',
+            0x51 => 'Gesperrt',
+            0xD1 => 'Freigegeben',
             0x53 => 'Neustart',
             0x22 => 'Alarm',
             0x23 => 'Sabotage',
