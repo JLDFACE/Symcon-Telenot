@@ -41,6 +41,13 @@ serielle GMS-Schnittstelle. Im Normalfall hängt die Zentrale an einem IP-RS232-
 
 Ein Serial Port statt Client Socket funktioniert genauso (gleicher Datenfluss).
 
+**Sicherer: Wandler als TCP-Client.** Als TCP-Server nimmt der Wandler Verbindungen von jedem Gerät im
+Netz an – und die GMS-Schnittstelle kennt keinen Code. Besser: Wandler auf **TCP Client** mit Ziel
+SymBox-IP und Port stellen und in Symcon statt des Client Sockets einen **Server Socket** (gleicher
+Port, **Limit = 1**) als Parent des Gateways verwenden. Dann hält der Wandler die einzige zulässige
+Verbindung; die Selbstheilung des Gateways setzt bei Stille auch den Server Socket zurück.
+Zusätzlich das Web-Passwort des Wandlers ändern (Werkseinstellung bei Waveshare: `admin`).
+
 ## Protokoll (GMS)
 
 An einer hiplex 8400H mitgeschnitten und verifiziert; Befehlsaufbau nach dem

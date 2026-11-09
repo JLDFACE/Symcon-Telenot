@@ -21,6 +21,7 @@ class TelenotGateway extends IPSModule
 {
     const SOCKET_GUID = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
     const SERIAL_GUID = '{6DC3D946-0D31-450F-A8C6-C42DB8D7D4F1}';
+    const SERVER_GUID = '{8062CF2B-600E-41D6-AD4B-1BA66C32D6ED}';
     const IO_TX = '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}';
     const IF_FROM_CHILD = '{99A612CC-0F87-4A39-9E2E-C6026E1053A8}';
     const IF_TO_CHILD = '{A05F3750-F1CA-49AE-A531-0E1D2A0A0CB4}';
@@ -275,6 +276,8 @@ class TelenotGateway extends IPSModule
      * Der Socket meldet „verbunden“, aber die Zentrale schweigt: so sieht eine halb offene
      * TCP-Verbindung aus, etwa nach einem Neustart des Wandlers (live am 06.11.2026 erlebt,
      * 25 min ohne Daten). Dann den Client Socket neu verbinden, höchstens einmal pro Minute.
+     * Gilt auch für einen Server Socket (Wandler im Modus „TCP Client“): Schließen/Öffnen
+     * trennt die hängende Verbindung, der Wandler verbindet sich neu – wichtig bei Limit = 1.
      */
     private function ReconnectIfSilent()
     {
@@ -282,7 +285,7 @@ class TelenotGateway extends IPSModule
         if ($parent <= 0 || !$this->ParentActive()) {
             return;
         }
-        if (IPS_GetInstance($parent)['ModuleInfo']['ModuleID'] !== self::SOCKET_GUID) {
+        if (!in_array(IPS_GetInstance($parent)['ModuleInfo']['ModuleID'], array(self::SOCKET_GUID, self::SERVER_GUID), true)) {
             return;
         }
         $since = max((float) $this->GetBuffer('LastRx'), (float) $this->GetBuffer('LastReconnect'));
